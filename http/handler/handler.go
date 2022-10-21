@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/portainer/agent/http/handler/portainercc"
+
 	"github.com/portainer/agent"
 	"github.com/portainer/agent/edge"
 	"github.com/portainer/agent/exec"
@@ -41,6 +43,7 @@ type Handler struct {
 	hostHandler            *host.Handler
 	pingHandler            *ping.Handler
 	containerPlatform      agent.ContainerPlatform
+	portainerccHandler     *portainercc.Handler
 }
 
 // Config represents a server handler configuration
@@ -79,6 +82,7 @@ func NewHandler(config *Config) *Handler {
 		hostHandler:            host.NewHandler(config.SystemService, agentProxy, notaryService),
 		pingHandler:            ping.NewHandler(),
 		containerPlatform:      config.ContainerPlatform,
+		portainerccHandler:     portainercc.NewHandler(agentProxy, notaryService),
 	}
 }
 
@@ -119,6 +123,8 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, request *http.Request) {
 		h.kubernetesProxyHandler.ServeHTTP(rw, request)
 	case strings.HasPrefix(request.URL.Path, "/nomad"):
 		h.nomadProxyHandler.ServeHTTP(rw, request)
+	case strings.HasPrefix(request.URL.Path, "/portainercc"):
+		http.StripPrefix("/portainercc/coordinator", h.portainerccHandler).ServeHTTP(rw, request)
 	case strings.HasPrefix(request.URL.Path, "/"):
 		h.dockerProxyHandler.ServeHTTP(rw, request)
 	}
